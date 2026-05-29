@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>校园点餐 - 学生注册</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .register-card {
+            background: white;
+            border-radius: 32px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .logo { text-align: center; font-size: 48px; margin-bottom: 20px; }
+        h1 { text-align: center; font-size: 24px; color: #333; margin-bottom: 30px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 16px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .register-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .login-link a { color: #667eea; text-decoration: none; font-weight: bold; }
+        .error-msg { color: #ff4757; font-size: 14px; text-align: center; margin-top: 15px; }
+        .success-msg { color: #28a745; font-size: 14px; text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="register-card">
+    <div class="logo">📝</div>
+    <h1>学生注册</h1>
+    <div class="input-group">
+        <input type="text" id="username" placeholder="用户名">
+    </div>
+    <div class="input-group">
+        <input type="password" id="password" placeholder="密码">
+    </div>
+    <div class="input-group">
+        <input type="text" id="realName" placeholder="真实姓名">
+    </div>
+    <div class="input-group">
+        <input type="tel" id="phone" placeholder="手机号">
+    </div>
+    <button class="register-btn" onclick="register()">注 册</button>
+    <div class="login-link">
+        已有账号？ <a href="student_login.html">立即登录</a>
+    </div>
+    <div id="message"></div>
+</div>
+
+<script>
+    async function register() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const realName = document.getElementById('realName').value;
+        const phone = document.getElementById('phone').value;
+        const msgDiv = document.getElementById('message');
+        if (!username || !password || !realName || !phone) {
+            msgDiv.innerHTML = '<div class="error-msg">请填写所有字段</div>';
+            return;
+        }
+        try {
+            const res = await fetch('/api/auth/register/student', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, realName, phone })
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                msgDiv.innerHTML = '<div class="success-msg">注册成功！3秒后跳转到登录页...</div>';
+                setTimeout(() => { window.location.href = 'student_login.html'; }, 3000);
+            } else {
+                msgDiv.innerHTML = '<div class="error-msg">' + (data.message || '注册失败') + '</div>';
+            }
+        } catch (err) {
+            msgDiv.innerHTML = '<div class="error-msg">网络错误</div>';
+        }
+    }
+</script>
+</body>
+</html>

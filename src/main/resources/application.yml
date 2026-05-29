@@ -1,0 +1,79 @@
+# ==================== 校园自助点餐系统 — 应用配置 ====================
+
+# ==================== 服务端口 ====================
+server:
+  port: 8080
+
+# ==================== Spring 主配置 ====================
+spring:
+
+  # ---------- 数据源 ----------
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/campus_dining?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+
+  # ---------- Jackson 时间格式 ----------
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+
+# ==================== MyBatis Plus 配置 ====================
+mybatis-plus:
+  # 实体类扫描包
+  type-aliases-package: com.campus.entity
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    # 下划线转驼峰
+    map-underscore-to-camel-case: true
+    # 日志输出（开发环境）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键类型：ASSIGN_ID = 雪花算法
+      id-type: assign_id
+      # 逻辑删除字段
+      logic-delete-field: is_deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# ==================== 日志配置 ====================
+logging:
+  level:
+    # 项目包日志级别
+    com.campus: debug
+    # MyBatis Plus 日志
+    com.baomidou: debug
+    # Spring 框架日志
+    org.springframework: warn
+
+# ==================== JWT 配置 ====================
+jwt:
+  # 密钥（生产环境请使用复杂密钥并通过环境变量注入）
+  secret: campus-dining-jwt-secret-key-2024-must-be-at-least-256-bits-long
+  # Token 过期时间（单位：毫秒），默认 7 天
+  expiration: 604800000
+
+# ==================== Knife4j 文档配置 ====================
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# ==================== SpringDoc 配置 ====================
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+  default-produces-media-type: application/json
+
+# ==================== 文件上传配置 ====================
+file:
+  upload:
+    # 图片存储路径，相对路径基于项目根目录（campus-dining/）
+    path: ./image/

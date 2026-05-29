@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>点餐 - 校园点餐</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding-bottom: 70px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .back-btn, .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .merchant-name { font-size: 14px; opacity: 0.9; margin-bottom: 5px; }
+        .header h1 { font-size: 18px; }
+
+        .search-bar {
+            background: white;
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            background: #f8f8f8;
+        }
+        .search-input:focus {
+            border-color: #667eea;
+            background: white;
+        }
+
+        .category-bar {
+            background: white;
+            padding: 12px 15px;
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid #eee;
+        }
+        .category-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .category-btn.active { background: #667eea; color: white; }
+        .dish-list { padding: 15px; padding-bottom: 80px; }
+        .dish-card {
+            background: white;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .dish-img img { width: 80px; height: 80px; border-radius: 12px; object-fit: cover; }
+        .dish-info { flex: 1; }
+        .dish-name { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .dish-desc { font-size: 12px; color: #999; margin-bottom: 8px; }
+        .dish-price { font-size: 18px; font-weight: bold; color: #ff6b6b; }
+        .dish-sales { font-size: 11px; color: #aaa; margin-left: 8px; }
+        .add-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            cursor: pointer;
+            align-self: center;
+        }
+        .loading { text-align: center; padding: 40px; color: #999; }
+
+        /* 购物车悬浮按钮 */
+        .cart-float {
+            position: fixed;
+            bottom: 70px;
+            right: 15px;
+            background: #667eea;
+            color: white;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 99;
+            transition: transform 0.2s;
+        }
+        .cart-float:active { transform: scale(0.95); }
+        .cart-float .cart-icon { font-size: 28px; }
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+        }
+
+        /* 侧边抽屉购物车 */
+        .drawer-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+        }
+        .drawer {
+            position: fixed;
+            right: -100%;
+            top: 0;
+            bottom: 0;
+            width: 85%;
+            max-width: 320px;
+            background: white;
+            z-index: 201;
+            transition: right 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .drawer.open { right: 0; }
+        .drawer-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .drawer-header h3 { font-size: 18px; }
+        .close-drawer { font-size: 24px; cursor: pointer; background: none; border: none; color: white; }
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .drawer-cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .drawer-item-info { flex: 1; }
+        .drawer-item-name { font-size: 14px; font-weight: 500; }
+        .drawer-item-price { font-size: 12px; color: #ff6b6b; margin-top: 4px; }
+        .drawer-item-controls { display: flex; align-items: center; gap: 10px; }
+        .drawer-item-controls button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .drawer-minus { background: #f0f0f0; color: #333; }
+        .drawer-plus { background: #667eea; color: white; }
+        .drawer-item-quantity { font-size: 14px; min-width: 25px; text-align: center; }
+        .drawer-footer {
+            padding: 15px;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+        .drawer-total {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .drawer-submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .empty-drawer { text-align: center; padding: 40px; color: #999; }
+        .toast {
+            position: fixed;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            z-index: 202;
+        }
+
+        /* 底部导航栏 */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #999;
+        }
+        .tab-item.active { color: #667eea; }
+        .tab-icon { font-size: 22px; }
+        .tab-label { font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="header-top">
+        <button class="back-btn" onclick="goBack()">← 返回</button>
+        <button class="logout-btn" onclick="logout()">退出</button>
+    </div>
+    <div class="merchant-name" id="merchantName"></div>
+    <h1>🍜 点餐</h1>
+</div>
+
+<div class="search-bar">
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 搜索菜品..." oninput="searchDishes()">
+</div>
+
+<div class="category-bar" id="categoryBar">
+    <button class="category-btn active" data-category="">全部</button>
+</div>
+
+<div class="dish-list" id="dishList">
+    <div class="loading">加载中...</div>
+</div>
+
+<!-- 悬浮购物车按钮 -->
+<div class="cart-float" onclick="openDrawer()">
+    <span class="cart-icon">🛒</span>
+    <span class="cart-badge" id="cartBadge">0</span>
+</div>
+
+<!-- 侧边抽屉购物车 -->
+<div class="drawer-mask" id="drawerMask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <div class="drawer-header">
+        <h3>我的购物车</h3>
+        <button class="close-drawer" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-content" id="drawerContent">
+        <div class="empty-drawer">购物车是空的</div>
+    </div>
+    <div class="drawer-footer" id="drawerFooter" style="display: none;">
+        <div class="drawer-total">
+            <span>合计</span>
+            <span id="drawerTotal">¥0.00</span>
+        </div>
+        <button class="drawer-submit-btn" onclick="submitOrderFromDrawer()">去结算</button>
+    </div>
+</div>
+
+<!-- 底部导航栏 -->
+<div class="tab-bar">
+    <div class="tab-item" onclick="goToHome()">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label">首页</div>
+    </div>
+    <div class="tab-item active" onclick="goToMenu()">
+        <div class="tab-icon">🍜</div>
+        <div class="tab-label">点餐</div>
+    </div>
+    <div class="tab-item" onclick="goToOrders()">
+        <div class="tab-icon">📦</div>
+        <div class="tab-label">订单</div>
+    </div>
+    <div class="tab-item" onclick="goToProfile()">
+        <div class="tab-icon">👤</div>
+        <div class="tab-label">我的</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('studentToken');
+    if (!token) window.location.href = 'student_login.html';
+
+    const merchantId = localStorage.getItem('selectedMerchantId');
+    const merchantName = localStorage.getItem('selectedMerchantName');
+    if (!merchantId) window.location.href = 'student_home.html';
+
+    document.getElementById('merchantName').innerText = merchantName || '商家';
+
+    let currentCategory = '';
+    let allDishes = [];
+    let cartData = [];
+    let searchKeyword = '';
+
+    async function loadDishes() {
+        let url = `/api/student/dishes?merchantId=${merchantId}`;
+        if (currentCategory) url += '&category=' + encodeURIComponent(currentCategory);
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await res.json();
+            if (data.code === 200) {
+                allDishes = data.data;
+                filterAndRenderDishes();
+                loadCategories();
+            }
+        } catch (err) {
+            document.getElementById('dishList').innerHTML = '<div class="loading">加载失败</div>';
+        }
+    }
+
+    function filterAndRenderDishes() {
+        let filtered = [...allDishes];
+        if (searchKeyword) {
+            filtered = filtered.filter(d => d.name.includes(searchKeyword));
+        }
+        renderDishes(filtered);
+    }
+
+    function searchDishes() {
+        searchKeyword = document.getElementById('searchInput').value;
+        filterAndRenderDishes();
+    }
+
+    function loadCategories() {
+        const categories = ['全部', ...new Set(allDishes.map(d => d.category).filter(c => c))];
+        const html = categories.map(cat =>
+            `<button class="category-btn" data-category="${cat === '全部' ? '' : cat}" onclick="filterCategory('${cat === '全部' ? '' : cat}', this)">${cat}</button>`
+        ).join('');
+        document.getElementById('categoryBar').innerHTML = html;
+    }
+
+    function filterCategory(category, btn) {
+        currentCategory = category;
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadDishes();
+    }
+
+    function renderDishes(dishes) {
+        if (!dishes || dishes.length === 0) {
+            document.getElementById('dishList').innerHTML = '<div class="loading">暂无菜品</div>';
+            return;
+        }
+        const html = dishes.map(dish => `
+            <div class="dish-card">
+                <div class="dish-img">
+                    <img src="${dish.imageUrl || 'https://picsum.photos/200/150?random=' + dish.id}" alt="${dish.name}">
+                </div>
+                <div class="dish-info">
+                    <div class="dish-name">${dish.name}</div>
+                    <div class="dish-desc">${dish.description || ''}</div>
+                    <div>
+                        <span class="dish-price">¥${dish.price}</span>
+                        <span class="dish-sales">月售 ${dish.monthlySales || 0}</span>
+                    </div>
+                </div>
+                <button class="add-btn" onclick="addToCart(${dish.id})">+ 加入购物车</button>
+            </div>
+        `).join('');
+        document.getElementById('dishList').innerHTML = html;
+        loadCart();
+    }
+
+    async function addToCart(dishId) {
+        try {
+            const res = await fetch('/api/student/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ dishId, quantity: 1 })
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                showToast('已添加到购物车');
+                loadCart();
+            } else {
+                showToast(data.message || '添加失败');
+            }
+        } catch (err) {
+            showToast('网络错误');
+        }
+    }
+
+    async function loadCart() {
+        try {
+            const res = await fetch('/api/student/cart', { headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await res.json();
+            if (data.code === 200 && data.data) {
+                cartData = data.data;
+                const totalCount = cartData.reduce((sum, item) => sum + item.quantity, 0);
+                document.getElementById('cartBadge').innerText = totalCount > 99 ? '99+' : totalCount;
+                renderDrawer();
+            } else {
+                cartData = [];
+                document.getElementById('cartBadge').innerText = '0';
+                renderDrawer();
+            }
+        } catch (err) {}
+    }
+
+    function renderDrawer() {
+        const drawerContent = document.getElementById('drawerContent');
+        const drawerFooter = document.getElementById('drawerFooter');
+
+        if (!cartData || cartData.length === 0) {
+            drawerContent.innerHTML = '<div class="empty-drawer">🛒 购物车是空的<br>去点餐吧~</div>';
+            drawerFooter.style.display = 'none';
+            return;
+        }
+
+        const total = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        document.getElementById('drawerTotal').innerText = '¥' + total.toFixed(2);
+
+        const html = cartData.map(item => `
+            <div class="drawer-cart-item">
+                <div class="drawer-item-info">
+                    <div class="drawer-item-name">${item.dishName}</div>
+                    <div class="drawer-item-price">¥${item.price}</div>
+                </div>
+                <div class="drawer-item-controls">
+                    <button class="drawer-minus" onclick="updateCartQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                    <span class="drawer-item-quantity">${item.quantity}</span>
+                    <button class="drawer-plus" onclick="updateCartQuantity(${item.id}, ${item.quantity + 1})">+</button>
+                    <button class="drawer-minus" style="background:#ff4757;color:white;" onclick="deleteCartItem(${item.id})">删</button>
+                </div>
+            </div>
+        `).join('');
+        drawerContent.innerHTML = html;
+        drawerFooter.style.display = 'block';
+    }
+
+    async function updateCartQuantity(cartId, newQuantity) {
+        if (newQuantity <= 0) {
+            await deleteCartItem(cartId);
+            return;
+        }
+        try {
+            await fetch('/api/student/cart', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ cartItemId: cartId, quantity: newQuantity })
+            });
+            loadCart();
+        } catch (err) {}
+    }
+
+    async function deleteCartItem(cartId) {
+        try {
+            await fetch(`/api/student/cart/${cartId}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            loadCart();
+        } catch (err) {}
+    }
+
+    function openDrawer() {
+        document.getElementById('drawerMask').style.display = 'block';
+        document.getElementById('drawer').classList.add('open');
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawerMask').style.display = 'none';
+        document.getElementById('drawer').classList.remove('open');
+    }
+
+    async function submitOrderFromDrawer() {
+        if (cartData.length === 0) return;
+
+        const merchantId = cartData[0].merchantId;
+        const dishes = cartData.map(item => ({ dishId: item.dishId, quantity: item.quantity }));
+
+        try {
+            const res = await fetch('/api/student/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ merchantId, dishes })
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                for (let item of cartData) {
+                    await fetch(`/api/student/cart/${item.id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+                }
+                closeDrawer();
+                showToast('订单提交成功！');
+                setTimeout(() => { window.location.href = 'student_orders.html'; }, 1000);
+            } else {
+                alert('提交失败：' + data.message);
+            }
+        } catch (err) {
+            alert('网络错误');
+        }
+    }
+
+    function showToast(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 1500);
+    }
+
+    function goBack() { window.location.href = 'student_home.html'; }
+    function goToHome() { window.location.href = 'student_home.html'; }
+    function goToMenu() { window.location.href = 'student_menu.html'; }
+    function goToOrders() { window.location.href = 'student_orders.html'; }
+    function goToProfile() { window.location.href = 'student_profile.html'; }
+    function logout() { localStorage.clear(); window.location.href = 'student_login.html'; }
+
+    loadDishes();
+</script>
+</body>
+</html>

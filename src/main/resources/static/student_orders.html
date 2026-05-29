@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>校园点餐 - 我的订单</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding-bottom: 70px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .back-btn { font-size: 24px; cursor: pointer; text-decoration: none; color: white; background: none; border: none; }
+        .header h1 { font-size: 18px; flex: 1; }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            font-size: 14px;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .order-list { padding: 15px; }
+        .order-card {
+            background: white;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            cursor: pointer;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .order-no {
+            font-size: 12px;
+            color: #999;
+        }
+        .status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        .status-0 { background: #fff3e0; color: #ff9800; }
+        .status-1 { background: #e3f2fd; color: #2196f3; }
+        .status-2 { background: #e8f5e9; color: #4caf50; }
+        .status-3 { background: #e8f5e9; color: #4caf50; }
+        .status-4 { background: #e3f2fd; color: #2196f3; }
+        .status-5 { background: #e8f5e9; color: #4caf50; }
+        .status-6 { background: #ffebee; color: #f44336; }
+
+        .order-items {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        .order-item-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #666;
+            margin: 5px 0;
+        }
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .total-amount {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        .pay-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .empty { text-align: center; padding: 60px; color: #999; }
+        .loading { text-align: center; padding: 40px; color: #999; }
+
+        /* 底部导航栏 */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #999;
+        }
+        .tab-item.active { color: #667eea; }
+        .tab-icon { font-size: 22px; }
+        .tab-label { font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <a href="student_home.html" class="back-btn">←</a>
+    <h1>我的订单</h1>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('ongoing')">进行中</div>
+    <div class="tab" onclick="switchTab('history')">历史订单</div>
+</div>
+
+<div class="order-list" id="orderList">
+    <div class="loading">加载中...</div>
+</div>
+
+<!-- 底部导航栏 -->
+<div class="tab-bar">
+    <div class="tab-item" onclick="goToHome()">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label">首页</div>
+    </div>
+    <div class="tab-item active" onclick="goToOrders()">
+        <div class="tab-icon">📦</div>
+        <div class="tab-label">订单</div>
+    </div>
+    <div class="tab-item" onclick="goToProfile()">
+        <div class="tab-icon">👤</div>
+        <div class="tab-label">我的</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('studentToken');
+    if (!token) window.location.href = 'student_login.html';
+
+    let currentTab = 'ongoing';
+    const statusMap = { 0: '待支付', 1: '已支付', 2: '待接单', 3: '制作中', 4: '待取餐', 5: '已完成', 6: '已取消' };
+    const ongoingStatus = [0, 1, 2, 3, 4];
+    const historyStatus = [5, 6];
+
+    async function loadOrders() {
+        try {
+            const res = await fetch('/api/student/orders', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200 && data.data) {
+                let filteredOrders = data.data;
+                if (currentTab === 'ongoing') {
+                    filteredOrders = data.data.filter(order => ongoingStatus.includes(order.status));
+                } else {
+                    filteredOrders = data.data.filter(order => historyStatus.includes(order.status));
+                }
+                filteredOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                if (filteredOrders.length > 0) {
+                    renderOrders(filteredOrders);
+                    // 为每个订单加载菜品信息
+                    filteredOrders.forEach(order => loadOrderItems(order.id));
+                } else {
+                    const emptyText = currentTab === 'ongoing' ? '暂无进行中的订单' : '暂无历史订单';
+                    document.getElementById('orderList').innerHTML = `<div class="empty">${emptyText}<br><a href="student_home.html" style="color:#667eea">去点餐</a></div>`;
+                }
+            } else {
+                document.getElementById('orderList').innerHTML = '<div class="empty">暂无订单<br><a href="student_home.html" style="color:#667eea">去点餐</a></div>';
+            }
+        } catch (err) {
+            document.getElementById('orderList').innerHTML = '<div class="empty">加载失败</div>';
+        }
+    }
+
+    function renderOrders(orders) {
+        const html = orders.map(order => `
+            <div class="order-card" onclick="viewDetail(${order.id})">
+                <div class="order-header">
+                    <span class="order-no">${order.orderNo}</span>
+                    <span class="status status-${order.status}">${statusMap[order.status] || '未知'}</span>
+                </div>
+                <div class="order-items" id="order-items-${order.id}">
+                    <div class="order-item-line">加载菜品...</div>
+                </div>
+                <div class="order-footer">
+                    <span class="total-amount">¥${order.actualAmount}</span>
+                    ${order.status === 0 ? `<button class="pay-btn" onclick="event.stopPropagation();payOrder(${order.id})">去支付</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('orderList').innerHTML = html;
+    }
+
+    async function loadOrderItems(orderId) {
+        try {
+            const res = await fetch(`/api/student/orders/${orderId}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200 && data.data && data.data.items) {
+                const items = data.data.items;
+                if (items.length === 0) {
+                    document.getElementById(`order-items-${orderId}`).innerHTML = '<div class="order-item-line">暂无菜品</div>';
+                    return;
+                }
+                // 只显示前2个菜品
+                const displayItems = items.slice(0, 2);
+                const itemsHtml = displayItems.map(item => `
+                    <div class="order-item-line">
+                        <span>${item.dishName} × ${item.quantity}</span>
+                        <span>¥${item.subtotal}</span>
+                    </div>
+                `).join('');
+                if (items.length > 2) {
+                    document.getElementById(`order-items-${orderId}`).innerHTML = itemsHtml + '<div class="order-item-line" style="color:#999;">等' + items.length + '个菜品</div>';
+                } else {
+                    document.getElementById(`order-items-${orderId}`).innerHTML = itemsHtml;
+                }
+            } else {
+                document.getElementById(`order-items-${orderId}`).innerHTML = '<div class="order-item-line">暂无菜品</div>';
+            }
+        } catch (err) {
+            document.getElementById(`order-items-${orderId}`).innerHTML = '<div class="order-item-line">加载失败</div>';
+        }
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (tab === 'ongoing') {
+            document.querySelector('.tab:first-child').classList.add('active');
+        } else {
+            document.querySelector('.tab:last-child').classList.add('active');
+        }
+        loadOrders();
+    }
+
+    async function payOrder(orderId) {
+        try {
+            const res = await fetch(`/api/student/orders/${orderId}/pay`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                alert('支付成功！');
+                loadOrders();
+            } else {
+                alert('支付失败：' + data.message);
+            }
+        } catch (err) {
+            alert('网络错误');
+        }
+    }
+
+    function viewDetail(orderId) {
+        window.location.href = `student_order_detail.html?id=${orderId}`;
+    }
+
+    function goToHome() { window.location.href = 'student_home.html'; }
+    function goToOrders() { window.location.href = 'student_orders.html'; }
+    function goToProfile() { window.location.href = 'student_profile.html'; }
+
+    loadOrders();
+</script>
+</body>
+</html>

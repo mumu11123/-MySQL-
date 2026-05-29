@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>校园点餐 - 首页</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding-bottom: 70px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 15px;
+        }
+        .header h1 { font-size: 20px; margin-bottom: 5px; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; font-size: 14px; opacity: 0.9; }
+        .logout-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 12px; border-radius: 20px; cursor: pointer; }
+
+        .merchant-card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            margin: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .merchant-card:active { transform: scale(0.98); }
+        .merchant-info { flex: 1; }
+        .merchant-name { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .merchant-category { font-size: 13px; color: #999; margin-bottom: 5px; }
+        .merchant-address { font-size: 12px; color: #aaa; }
+        .enter-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .empty { text-align: center; padding: 60px; color: #999; }
+
+        /* 底部导航栏 */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 1px solid #eee;
+            z-index: 100;
+        }
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #999;
+        }
+        .tab-item.active { color: #667eea; }
+        .tab-icon { font-size: 22px; }
+        .tab-label { font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>🏪 选择商家</h1>
+    <div class="user-info">
+        <span id="userName">学生</span>
+        <button class="logout-btn" onclick="logout()">退出</button>
+    </div>
+</div>
+
+<div id="merchantList" class="loading">加载中...</div>
+
+<!-- 底部导航栏 -->
+<div class="tab-bar">
+    <div class="tab-item active" onclick="goToHome()">
+        <div class="tab-icon">🏠</div>
+        <div class="tab-label">首页</div>
+    </div>
+    <div class="tab-item" onclick="goToOrders()">
+        <div class="tab-icon">📦</div>
+        <div class="tab-label">订单</div>
+    </div>
+    <div class="tab-item" onclick="goToProfile()">
+        <div class="tab-icon">👤</div>
+        <div class="tab-label">我的</div>
+    </div>
+</div>
+
+<script>
+    const token = localStorage.getItem('studentToken');
+    if (!token) window.location.href = 'student_login.html';
+    document.getElementById('userName').innerText = localStorage.getItem('studentUsername') || '学生';
+
+    async function loadMerchants() {
+        try {
+            const res = await fetch('/api/student/merchants', { headers: { 'Authorization': 'Bearer ' + token } });
+            const data = await res.json();
+            if (data.code === 200 && data.data && data.data.length > 0) {
+                renderMerchants(data.data);
+            } else {
+                document.getElementById('merchantList').innerHTML = '<div class="empty">暂无商家营业<br>请稍后再来</div>';
+            }
+        } catch (err) {
+            document.getElementById('merchantList').innerHTML = '<div class="empty">加载失败</div>';
+        }
+    }
+
+    function renderMerchants(merchants) {
+        const html = merchants.map(m => `
+            <div class="merchant-card" onclick="selectMerchant(${m.id}, '${m.shopName}')">
+                <div class="merchant-info">
+                    <div class="merchant-name">${m.shopName}</div>
+                    <div class="merchant-category">${m.category || '餐饮'}</div>
+                    <div class="merchant-address">📍 ${m.address || '校内'}</div>
+                </div>
+                <button class="enter-btn">进入</button>
+            </div>
+        `).join('');
+        document.getElementById('merchantList').innerHTML = html;
+    }
+
+    function selectMerchant(merchantId, merchantName) {
+        localStorage.setItem('selectedMerchantId', merchantId);
+        localStorage.setItem('selectedMerchantName', merchantName);
+        window.location.href = 'student_menu.html';
+    }
+
+    function goToHome() { window.location.href = 'student_home.html'; }
+    function goToOrders() { window.location.href = 'student_orders.html'; }
+    function goToProfile() { window.location.href = 'student_profile.html'; }
+    function logout() { localStorage.clear(); window.location.href = 'student_login.html'; }
+
+    loadMerchants();
+</script>
+</body>
+</html>

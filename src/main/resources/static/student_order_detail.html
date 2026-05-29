@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>订单详情 - 校园点餐</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+        }
+        .back-btn { font-size: 24px; cursor: pointer; text-decoration: none; color: #333; }
+        .header h1 { font-size: 18px; flex: 1; }
+        .content { padding: 15px; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        /* 状态进度条样式 */
+        .progress-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 20px 0;
+        }
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 10%;
+            right: 10%;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 1;
+        }
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+        .step.active .step-circle {
+            background: #667eea;
+            color: white;
+        }
+        .step.completed .step-circle {
+            background: #28a745;
+            color: white;
+        }
+        .step-label {
+            font-size: 12px;
+            color: #999;
+        }
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: 500;
+        }
+        .step.completed .step-label {
+            color: #28a745;
+        }
+        .status-time {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-label { color: #999; }
+        .info-value { color: #333; font-weight: 500; }
+        .total-row {
+            margin-top: 10px;
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .total-price { color: #ff6b6b; }
+        .items-title { font-weight: bold; margin-bottom: 10px; }
+        .order-item { display: flex; justify-content: space-between; padding: 8px 0; }
+        .cancel-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .contact-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .pickup-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .empty { text-align: center; padding: 60px; color: #999; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <a href="student_orders.html" class="back-btn">←</a>
+    <h1>订单详情</h1>
+</div>
+<div class="content" id="content">
+    <div class="empty">加载中...</div>
+</div>
+
+<script>
+    const token = localStorage.getItem('studentToken');
+    if (!token) window.location.href = 'student_login.html';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('id');
+
+    if (!orderId) {
+        window.location.href = 'student_orders.html';
+    }
+
+    // 状态映射
+    const statusMap = { 0: '待支付', 2: '待接单', 3: '制作中', 4: '待取餐', 5: '已完成', 6: '已取消' };
+
+    // 进度条步骤配置
+    // status 值对应的步骤索引: 0待支付→0, 2待接单→1, 3制作中→2, 4待取餐→3, 5已完成→4
+    const getStepIndex = (status) => {
+        if (status === 0) return 0;
+        if (status === 2) return 1;
+        if (status === 3) return 2;
+        if (status === 4) return 3;
+        if (status === 5) return 4;
+        return 0;
+    };
+
+    const steps = [
+        { name: '提交订单', key: 'submit' },
+        { name: '商家接单', key: 'accept' },
+        { name: '制作中', key: 'cooking' },
+        { name: '待取餐', key: 'pickup' },
+        { name: '已完成', key: 'done' }
+    ];
+
+    async function loadOrderDetail() {
+        try {
+            const res = await fetch(`/api/student/orders/${orderId}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                renderOrderDetail(data.data);
+            } else {
+                document.getElementById('content').innerHTML = '<div class="empty">订单不存在</div>';
+            }
+        } catch (err) {
+            document.getElementById('content').innerHTML = '<div class="empty">加载失败</div>';
+        }
+    }
+
+    function renderOrderDetail(order) {
+        const currentStatus = order.status;
+        const currentStepIndex = getStepIndex(currentStatus);
+
+        // 生成进度条
+        const stepsHtml = steps.map((step, index) => {
+            let stepClass = '';
+            if (index < currentStepIndex) {
+                stepClass = 'completed';
+            } else if (index === currentStepIndex && currentStatus !== 6) {
+                stepClass = 'active';
+            }
+            return `
+                <div class="step ${stepClass}">
+                    <div class="step-circle">
+                        ${index < currentStepIndex ? '✓' : (index === currentStepIndex ? '●' : index + 1)}
+                    </div>
+                    <div class="step-label">${step.name}</div>
+                </div>
+            `;
+        }).join('');
+
+        // 订单状态显示
+        let statusText = statusMap[currentStatus] || '未知';
+        let statusColor = '#ff9800';
+        if (currentStatus === 5) statusColor = '#28a745';
+        if (currentStatus === 6) statusColor = '#f44336';
+
+        // 是否显示取消按钮
+        // 待支付(0)或待接单(2)时显示取消按钮
+const showCancelBtn = (currentStatus === 0 || currentStatus === 2);
+
+        // 待取餐时显示确认取餐按钮
+        const showPickupBtn = (currentStatus === 4);
+
+        // 是否显示联系商家按钮（有订单且不是已取消）
+        const showContactBtn = (currentStatus !== 6 && currentStatus !== 0);
+
+        // 菜品明细
+        const itemsHtml = (order.items || []).map(item => `
+            <div class="order-item">
+                <span>${item.dishName} × ${item.quantity}</span>
+                <span>¥${item.subtotal}</span>
+            </div>
+        `).join('');
+
+        const html = `
+            <div class="card">
+                <div class="progress-steps">
+                    ${stepsHtml}
+                </div>
+                <div style="text-align: center; margin-top: 5px;">
+                    <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; background: ${statusColor}20; color: ${statusColor}; font-size: 14px; font-weight: bold;">
+                        ${statusText}
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+    <div class="info-row">
+        <span class="info-label">订单编号</span>
+        <span class="info-value">${order.orderNo}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">商家名称</span>
+        <span class="info-value">${order.merchantName || '商家'}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">下单时间</span>
+        <span class="info-value">${order.createdAt || ''}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">支付方式</span>
+        <span class="info-value">微信支付</span>
+    </div>
+</div>
+
+            <div class="card">
+                <div class="items-title">菜品明细</div>
+                ${itemsHtml}
+                <div class="total-row">
+                    <span>实付金额</span>
+                    <span class="total-price">¥${order.actualAmount}</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="info-row">
+                    <span class="info-label">收货人</span>
+                    <span class="info-value">${localStorage.getItem('studentUsername') || '学生'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">联系电话</span>
+                    <span class="info-value">${localStorage.getItem('studentPhone') || '未填写'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">取餐地址</span>
+                    <span class="info-value">${localStorage.getItem('studentAddress') || '食堂1楼取餐窗口'}</span>
+                </div>
+            </div>
+
+            ${showCancelBtn ? `<div class="card"><button class="cancel-btn" onclick="cancelOrder()">取消订单</button></div>` : ''}
+            ${showPickupBtn ? `<div class="card"><button class="pickup-btn" onclick="confirmPickup()">确认取餐</button></div>` : ''}
+            ${showContactBtn ? `<div class="card"><button class="contact-btn" onclick="contactMerchant()">联系商家</button></div>` : ''}
+        `;
+        document.getElementById('content').innerHTML = html;
+    }
+
+    async function cancelOrder() {
+        if (!confirm('确认取消该订单吗？')) return;
+        try {
+            const res = await fetch(`/api/student/orders/${orderId}/cancel`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                alert('订单已取消');
+                loadOrderDetail();
+            } else {
+                alert('取消失败：' + data.message);
+            }
+        } catch (err) {
+            alert('网络错误');
+        }
+    }
+
+    async function confirmPickup() {
+        if (!confirm('确认已经取到餐了吗？')) return;
+        try {
+            const res = await fetch(`/api/student/orders/${orderId}/confirm-pickup`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            if (data.code === 200) {
+                alert('取餐确认成功，订单已完成');
+                loadOrderDetail();
+            } else {
+                alert('确认失败：' + data.message);
+            }
+        } catch (err) {
+            alert('网络错误');
+        }
+    }
+
+    function contactMerchant() {
+    window.location.href = `student_contact.html?orderId=${orderId}`;
+}
+
+    loadOrderDetail();
+</script>
+</body>
+</html>

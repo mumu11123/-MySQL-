@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 28px;
+            background: #f4f6f8;
+            color: #1f2937;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        .shell {
+            max-width: 1080px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+        }
+        h1 { margin: 0 0 20px; font-size: 24px; }
+        h2 { margin: 0 0 12px; font-size: 18px; }
+        .login {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        input {
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+        button {
+            height: 36px;
+            padding: 0 14px;
+            border: 0;
+            border-radius: 6px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+        }
+        button.secondary { background: #64748b; }
+        button.danger { background: #dc2626; }
+        button:disabled { background: #9ca3af; cursor: not-allowed; }
+        .tip { min-height: 22px; color: #475569; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 22px 0 12px;
+            gap: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            text-align: left;
+            word-break: break-word;
+        }
+        th { background: #f8fafc; font-weight: 600; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .status { font-weight: 600; }
+        @media (max-width: 760px) {
+            body { padding: 12px; }
+            .shell { padding: 16px; }
+            table { font-size: 13px; }
+            .hide-sm { display: none; }
+        }
+    </style>
+</head>
+<body>
+<main class="shell">
+    <h1>商家入驻审核后台</h1>
+
+    <section class="login">
+        <h2>管理员登录</h2>
+        <input type="text" id="username" value="admin" aria-label="账号">
+        <input type="password" id="password" value="123456" aria-label="密码">
+        <button type="button" onclick="login()">登录</button>
+        <span class="tip" id="loginTip"></span>
+    </section>
+
+    <section>
+        <div class="toolbar">
+            <h2>入驻申请</h2>
+            <button type="button" class="secondary" onclick="getList()">刷新列表</button>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th style="width: 70px;">ID</th>
+                <th>店铺名称</th>
+                <th class="hide-sm">联系人</th>
+                <th class="hide-sm">手机号</th>
+                <th style="width: 92px;">状态</th>
+                <th style="width: 190px;">操作</th>
+            </tr>
+            </thead>
+            <tbody id="tableBody">
+            <tr><td colspan="6">请先登录后刷新列表</td></tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+
+<script>
+    const statusText = {0: "待审核", 1: "已通过", 2: "已驳回", 3: "退回补充"};
+
+    function authHeaders() {
+        return {
+            "Authorization": "Bearer " + localStorage.getItem("adminToken"),
+            "Content-Type": "application/json"
+        };
+    }
+
+    async function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const tip = document.getElementById("loginTip");
+        tip.innerText = "登录中...";
+        const res = await fetch("/api/auth/admin/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: new URLSearchParams({username, password})
+        });
+        const data = await res.json();
+        if (data.code === 200) {
+            localStorage.setItem("adminToken", data.data.token);
+            tip.innerText = "登录成功";
+            await getList();
+        } else {
+            tip.innerText = data.message || "登录失败";
+        }
+    }
+
+    async function getList() {
+        const tbody = document.getElementById("tableBody");
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+            tbody.innerHTML = '<tr><td colspan="6">请先登录</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '<tr><td colspan="6">加载中...</td></tr>';
+        const res = await fetch("/api/admin/apply/list", {headers: authHeaders()});
+        const data = await res.json();
+        if (data.code !== 200) {
+            tbody.innerHTML = `<tr><td colspan="6">${data.message || "加载失败"}</td></tr>`;
+            return;
+        }
+        if (!data.data || data.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6">暂无申请</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.data.map(item => {
+            const disabled = item.status !== 0 ? "disabled" : "";
+            return `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.shopName || ""}</td>
+                    <td class="hide-sm">${item.contactPerson || ""}</td>
+                    <td class="hide-sm">${item.phone || ""}</td>
+                    <td class="status">${statusText[item.status] || item.status}</td>
+                    <td>
+                        <div class="actions">
+                            <button type="button" ${disabled} onclick="approve(${item.id})">通过</button>
+                            <button type="button" ${disabled} class="danger" onclick="rejectApply(${item.id})">驳回</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    async function approve(id) {
+        const res = await fetch(`/api/admin/apply/${id}/approve`, {
+            method: "PUT",
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.code === 200 && data.data) {
+            alert(`已创建商家账号\n账号：${data.data.username}\n初始密码：${data.data.password}`);
+        } else if (data.message) {
+            alert(data.message);
+        }
+        await getList();
+    }
+
+    async function rejectApply(id) {
+        const res = await fetch(`/api/admin/apply/${id}/reject`, {
+            method: "PUT",
+            headers: authHeaders()
+        });
+        const data = await res.json();
+        if (data.code !== 200 && data.message) {
+            alert(data.message);
+        }
+        await getList();
+    }
+</script>
+</body>
+</html>
