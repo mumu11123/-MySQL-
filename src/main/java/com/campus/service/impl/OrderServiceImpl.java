@@ -1,11 +1,15 @@
 package com.campus.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.campus.entity.OrderItem;
 import com.campus.entity.Orders;
+import com.campus.mapper.DishMapper;
+import com.campus.mapper.OrderItemMapper;
 import com.campus.mapper.OrdersMapper;
 import com.campus.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -22,6 +26,8 @@ import static com.campus.service.impl.SalesStatsServiceImpl.DATE_FORMAT;
 public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implements OrderService {
 
     private final OrdersMapper ordersMapper;
+    private final OrderItemMapper orderItemMapper;
+    private final DishMapper dishMapper;
 
     @Override
     public List<Orders> listByMerchant(Long merchantId, Integer status, String orderNo, String startDate, String endDate) {
@@ -91,6 +97,7 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
     }
 
     @Override
+    @Transactional
     public void confirmPickup(Long orderId, Long userId) {
         Orders order = getById(orderId);
         if (order == null) throw new RuntimeException("订单不存在");
@@ -103,5 +110,13 @@ public class OrderServiceImpl extends ServiceImpl<OrdersMapper, Orders> implemen
         order.setFinishedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
         updateById(order);
+
+        List<OrderItem> items = orderItemMapper.selectList(
+                com.baomidou.mybatisplus.core.toolkit.Wrappers.lambdaQuery(OrderItem.class)
+                        .eq(OrderItem::getOrderId, orderId)
+        );
+        for (OrderItem item : items) {
+            dishMapper.increaseMonthlySales(item.getDishId(), item.getQuantity());
+        }
     }
 }
