@@ -205,6 +205,8 @@
     function renderOrderDetail(order) {
         const currentStatus = order.status;
         const currentStepIndex = getStepIndex(currentStatus);
+        if (order.userName) localStorage.setItem('studentUsername', order.userName);
+        if (order.phone) localStorage.setItem('studentPhone', order.phone);
 
         // 生成进度条
         const stepsHtml = steps.map((step, index) => {
@@ -275,7 +277,7 @@ const showCancelBtn = (currentStatus === 0 || currentStatus === 2);
     </div>
     <div class="info-row">
         <span class="info-label">支付方式</span>
-        <span class="info-value">微信支付</span>
+        <span class="info-value">${order.payMethod || '未支付'}</span>
     </div>
 </div>
 
@@ -286,16 +288,24 @@ const showCancelBtn = (currentStatus === 0 || currentStatus === 2);
                     <span>实付金额</span>
                     <span class="total-price">¥${order.actualAmount}</span>
                 </div>
+                <div class="info-row">
+                    <span class="info-label">订单总金额</span>
+                    <span class="info-value">¥${order.totalAmount || order.actualAmount}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">优惠金额</span>
+                    <span class="info-value">¥${order.discountAmount || 0}</span>
+                </div>
             </div>
 
             <div class="card">
                 <div class="info-row">
                     <span class="info-label">收货人</span>
-                    <span class="info-value">${localStorage.getItem('studentUsername') || '学生'}</span>
+                    <span class="info-value">${order.userName || localStorage.getItem('studentUsername') || '学生'}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">联系电话</span>
-                    <span class="info-value">${localStorage.getItem('studentPhone') || '未填写'}</span>
+                    <span class="info-value">${order.phone || localStorage.getItem('studentPhone') || '未填写'}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">取餐地址</span>

@@ -162,15 +162,19 @@ const confirmBlacklist = async () => {
     ElMessage.warning('请输入管控原因')
     return
   }
-  const res = await api.post(`/api/admin/merchants/${currentId.value}/blacklist`, null, {
-    params: { reason: blacklistReason.value }
-  })
-  if (res.code === 200) {
-    ElMessage.success('已加入黑名单')
-    blacklistVisible.value = false
-    loadList()
-  } else {
-    ElMessage.error(res.message || '操作失败')
+  try {
+    const res = await api.post(`/api/admin/merchants/${currentId.value}/blacklist`, null, {
+      params: { reason: blacklistReason.value }
+    })
+    if (res.code === 200) {
+      ElMessage.success('已加入黑名单')
+      blacklistVisible.value = false
+      loadList()
+    } else {
+      ElMessage.error(res.message || '操作失败')
+    }
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || '拉黑失败，请检查后台日志')
   }
 }
 

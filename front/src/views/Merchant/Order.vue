@@ -134,12 +134,12 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="订单编号">{{ orderInfo.orderNo }}</el-descriptions-item>
           <el-descriptions-item label="下单用户ID">{{ orderInfo.userId }}</el-descriptions-item>
-          <el-descriptions-item label="实付金额">
-            <span style="color:#f56c6c;font-weight:bold">¥{{ orderInfo.actualAmount }}</span>
+          <el-descriptions-item label="订单总金额">
+            <span style="color:#f56c6c;font-weight:bold">¥{{ orderInfo.totalAmount }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="优惠金额">¥{{ orderInfo.discountAmount || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="订单总金额" :span="2">
-            <span style="color:#f56c6c;font-size:18px;font-weight:bold">¥{{ orderInfo.totalAmount }}</span>
+          <el-descriptions-item label="实付金额" :span="2">
+            <span style="color:#f56c6c;font-size:18px;font-weight:bold">¥{{ orderInfo.actualAmount }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="支付方式">{{ orderInfo.payMethod || "未支付" }}</el-descriptions-item>
           <el-descriptions-item label="联系方式">{{ orderInfo.phone || '暂无' }}</el-descriptions-item>

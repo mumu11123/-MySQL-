@@ -275,10 +275,13 @@
     }
 
     async function payOrder(orderId) {
+        const payMethod = prompt('请选择支付方式：微信支付 / 支付宝 / 校园卡', '微信支付');
+        if (!payMethod) return;
         try {
             const res = await fetch(`/api/student/orders/${orderId}/pay`, {
                 method: 'PUT',
-                headers: { 'Authorization': 'Bearer ' + token }
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ payMethod: payMethod.trim() })
             });
             const data = await res.json();
             if (data.code === 200) {

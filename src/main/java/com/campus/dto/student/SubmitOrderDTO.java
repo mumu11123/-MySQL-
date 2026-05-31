@@ -22,6 +22,9 @@ public class SubmitOrderDTO {
     @NotEmpty(message = "订单菜品不能为空")
     private List<OrderDishDTO> dishes;
 
+    @Schema(description = "支付方式", example = "微信支付")
+    private String payMethod;
+
     @Data
     @Schema(description = "订单菜品项")
     public static class OrderDishDTO {
