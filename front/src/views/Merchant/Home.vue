@@ -125,17 +125,17 @@
             <div class="overview-row">
               <div class="overview-item">
                 <div class="overview-label">今日销售额</div>
-                <div class="overview-value" style="color:#409eff">¥{{ todayStats.amount || 0 }}</div>
+                <div class="overview-value" style="color:#409eff">¥{{ todayStats.totalAmount || 0 }}</div>
               </div>
               <div class="overview-item">
                 <div class="overview-label">今日订单</div>
-                <div class="overview-value" style="color:#67c23a">{{ todayStats.orders || 0 }}</div>
+                <div class="overview-value" style="color:#67c23a">{{ todayStats.totalOrders || 0 }}</div>
               </div>
             </div>
             <div class="overview-row">
               <div class="overview-item">
                 <div class="overview-label">今日销量</div>
-                <div class="overview-value" style="color:#e6a23c">{{ todayStats.dishes || 0 }}</div>
+                <div class="overview-value" style="color:#e6a23c">{{ todayStats.totalDishes || 0 }}</div>
               </div>
               <div class="overview-item">
                 <div class="overview-label">客单价</div>
